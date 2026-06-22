@@ -1,0 +1,139 @@
+@page "/study/{Id:guid}"
+@inject DeckStore Store
+@inject NavigationManager Nav
+
+<PageTitle>Study @(deck?.Name)</PageTitle>
+
+@if (!ready)
+{
+    <p><em>Loading…</em></p>
+}
+else if (deck is null)
+{
+    <p class="empty-state">Deck not found. <a href="">Back to decks</a>.</p>
+}
+else
+{
+    <div class="page-header">
+        <div>
+            <a class="back-link" href="@($"deck/{deck.Id}")">← @deck.Name</a>
+            <h1>Study</h1>
+        </div>
+    </div>
+
+    @if (current is null)
+    {
+        <div class="study-done">
+            <h2>🎉 All done!</h2>
+            <p>No more cards due in this deck right now.</p>
+            <p class="study-progress">Reviewed @reviewedCount card@(reviewedCount == 1 ? "" : "s") this session.</p>
+            <div class="study-done-actions">
+                <a class="btn btn-primary" href="">Back to decks</a>
+                <a class="btn btn-secondary" href="@($"deck/{deck.Id}")">Edit deck</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <p class="study-progress">@remaining card@(remaining == 1 ? "" : "s") remaining</p>
+
+        <div class="flashcard @(showBack ? "flipped" : "")" @onclick="Flip">
+            <div class="flashcard-inner">
+                <div class="flashcard-face flashcard-front">
+                    <span class="face-label">Front</span>
+                    <div class="face-text">@current.Front</div>
+                    <span class="tap-hint">Tap to reveal</span>
+                </div>
+                <div class="flashcard-face flashcard-back">
+                    <span class="face-label">Back</span>
+                    <div class="face-text">@current.Back</div>
+                </div>
+            </div>
+        </div>
+
+        @if (!showBack)
+        {
+            <div class="study-actions">
+                <button class="btn btn-secondary btn-block" @onclick="Flip">Show answer</button>
+            </div>
+        }
+        else
+        {
+            <div class="grade-buttons">
+                <button class="btn grade-again" @onclick="() => Grade(ReviewGrade.Again)">
+                    Again<small>@Label(ReviewGrade.Again)</small>
+                </button>
+                <button class="btn grade-hard" @onclick="() => Grade(ReviewGrade.Hard)">
+                    Hard<small>@Label(ReviewGrade.Hard)</small>
+                </button>
+                <button class="btn grade-good" @onclick="() => Grade(ReviewGrade.Good)">
+                    Good<small>@Label(ReviewGrade.Good)</small>
+                </button>
+                <button class="btn grade-easy" @onclick="() => Grade(ReviewGrade.Easy)">
+                    Easy<small>@Label(ReviewGrade.Easy)</small>
+                </button>
+            </div>
+        }
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private bool ready;
+    private Deck? deck;
+    private Queue<Card> queue = new();
+    private Card? current;
+    private bool showBack;
+    private int reviewedCount;
+
+    private int remaining => queue.Count + (current is not null ? 1 : 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Store.InitAsync();
+        deck = Store.GetDeck(Id);
+        ready = true;
+        BuildQueue();
+    }
+
+    private void BuildQueue()
+    {
+        if (deck is null) return;
+        var now = DateTime.UtcNow;
+        queue = new Queue<Card>(DeckStore.DueCards(deck, now));
+        NextCard();
+    }
+
+    private void NextCard()
+    {
+        showBack = false;
+        current = queue.Count > 0 ? queue.Dequeue() : null;
+    }
+
+    private void Flip() => showBack = !showBack;
+
+    private async Task Grade(ReviewGrade grade)
+    {
+        if (current is null) return;
+
+        Sm2Scheduler.Apply(current, grade, DateTime.UtcNow);
+
+        // "Again" cards stay in this session — requeue them to retry shortly.
+        if (grade == ReviewGrade.Again)
+        {
+            queue.Enqueue(current);
+        }
+
+        reviewedCount++;
+        await Store.SaveAsync();
+        NextCard();
+    }
+
+    private string Label(ReviewGrade grade)
+    {
+        if (current is null) return "";
+        int days = Sm2Scheduler.PreviewIntervalDays(current, grade);
+        return days <= 1 ? "1d" : $"{days}d";
+    }
+}

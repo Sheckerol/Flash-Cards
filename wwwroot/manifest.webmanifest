@@ -1,0 +1,23 @@
+{
+  "name": "FlashCards — Spaced Repetition",
+  "short_name": "FlashCards",
+  "description": "Create decks, study with flippable cards, and review with SM-2 spaced repetition.",
+  "id": "./",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f1226",
+  "theme_color": "#0f1226",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ]
+}

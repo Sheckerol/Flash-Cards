@@ -1,0 +1,114 @@
+@page "/"
+@implements IDisposable
+@inject DeckStore Store
+
+<PageTitle>FlashCards</PageTitle>
+
+<div class="page-header">
+    <h1>My Decks</h1>
+    <button class="btn btn-primary" @onclick="ToggleAddForm">
+        @(showAddForm ? "Cancel" : "+ New deck")
+    </button>
+</div>
+
+@if (showAddForm)
+{
+    <div class="card-panel">
+        <EditForm Model="newDeck" OnValidSubmit="AddDeckAsync">
+            <div class="form-field">
+                <label>Name</label>
+                <InputText class="form-control" @bind-Value="newDeck.Name" placeholder="e.g. Spanish Verbs" />
+            </div>
+            <div class="form-field">
+                <label>Description (optional)</label>
+                <InputText class="form-control" @bind-Value="newDeck.Description" />
+            </div>
+            <button type="submit" class="btn btn-primary" disabled="@string.IsNullOrWhiteSpace(newDeck.Name)">
+                Create deck
+            </button>
+        </EditForm>
+    </div>
+}
+
+@if (!ready)
+{
+    <p><em>Loading…</em></p>
+}
+else if (Store.Decks.Count == 0)
+{
+    <p class="empty-state">No decks yet. Create your first one to start studying.</p>
+}
+else
+{
+    <div class="deck-list">
+        @foreach (var deck in Store.Decks)
+        {
+            var due = deck.DueCount(DateTime.UtcNow);
+            <div class="deck-tile">
+                <div class="deck-tile-body">
+                    <h3>@deck.Name</h3>
+                    @if (!string.IsNullOrWhiteSpace(deck.Description))
+                    {
+                        <p class="deck-desc">@deck.Description</p>
+                    }
+                    <p class="deck-meta">
+                        @deck.Cards.Count card@(deck.Cards.Count == 1 ? "" : "s")
+                        @if (due > 0)
+                        {
+                            <span class="badge-due">@due due</span>
+                        }
+                        else
+                        {
+                            <span class="badge-clear">All caught up</span>
+                        }
+                    </p>
+                </div>
+                <div class="deck-tile-actions">
+                    <a class="btn btn-primary" href="@($"study/{deck.Id}")">Study</a>
+                    <a class="btn btn-secondary" href="@($"deck/{deck.Id}")">Edit</a>
+                    <button class="btn btn-danger" @onclick="() => DeleteDeckAsync(deck.Id)">Delete</button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool ready;
+    private bool showAddForm;
+    private DeckForm newDeck = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Store.InitAsync();
+        Store.OnChange += StateHasChanged;
+        ready = true;
+    }
+
+    private void ToggleAddForm()
+    {
+        showAddForm = !showAddForm;
+        if (showAddForm) newDeck = new();
+    }
+
+    private async Task AddDeckAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newDeck.Name)) return;
+        await Store.AddDeckAsync(newDeck.Name, newDeck.Description);
+        newDeck = new();
+        showAddForm = false;
+    }
+
+    private async Task DeleteDeckAsync(Guid id)
+    {
+        await Store.DeleteDeckAsync(id);
+    }
+
+    public void Dispose() => Store.OnChange -= StateHasChanged;
+
+    private class DeckForm
+    {
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+    }
+}

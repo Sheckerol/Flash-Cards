@@ -1,0 +1,116 @@
+@page "/deck/{Id:guid}"
+@implements IDisposable
+@inject DeckStore Store
+@inject NavigationManager Nav
+
+<PageTitle>@(deck?.Name ?? "Deck")</PageTitle>
+
+@if (!ready)
+{
+    <p><em>Loading…</em></p>
+}
+else if (deck is null)
+{
+    <p class="empty-state">Deck not found. <a href="">Back to decks</a>.</p>
+}
+else
+{
+    <div class="page-header">
+        <div>
+            <a class="back-link" href="">← Decks</a>
+            <h1>@deck.Name</h1>
+        </div>
+        <a class="btn btn-primary" href="@($"study/{deck.Id}")">Study</a>
+    </div>
+
+    <div class="card-panel">
+        <h3>Add a card</h3>
+        <EditForm Model="newCard" OnValidSubmit="AddCardAsync">
+            <div class="form-field">
+                <label>Front</label>
+                <InputTextArea class="form-control" @bind-Value="newCard.Front" rows="2" />
+            </div>
+            <div class="form-field">
+                <label>Back</label>
+                <InputTextArea class="form-control" @bind-Value="newCard.Back" rows="2" />
+            </div>
+            <button type="submit" class="btn btn-primary"
+                    disabled="@(string.IsNullOrWhiteSpace(newCard.Front) || string.IsNullOrWhiteSpace(newCard.Back))">
+                Add card
+            </button>
+        </EditForm>
+    </div>
+
+    <h3 class="section-title">Cards (@deck.Cards.Count)</h3>
+    @if (deck.Cards.Count == 0)
+    {
+        <p class="empty-state">No cards yet. Add one above.</p>
+    }
+    else
+    {
+        <div class="card-rows">
+            @foreach (var card in deck.Cards)
+            {
+                <div class="card-row">
+                    <div class="card-row-text">
+                        <div class="card-front">@card.Front</div>
+                        <div class="card-back">@card.Back</div>
+                        <div class="card-sched">
+                            @if (card.IsNew)
+                            {
+                                <span>New</span>
+                            }
+                            else
+                            {
+                                <span>Due @card.DueDate.ToLocalTime().ToString("MMM d") · interval @card.IntervalDays d</span>
+                            }
+                        </div>
+                    </div>
+                    <button class="btn btn-danger" @onclick="() => DeleteCardAsync(card.Id)">Delete</button>
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private bool ready;
+    private Deck? deck;
+    private CardForm newCard = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Store.InitAsync();
+        Store.OnChange += StateHasChanged;
+        ready = true;
+    }
+
+    protected override void OnParametersSet()
+    {
+        deck = Store.GetDeck(Id);
+    }
+
+    private async Task AddCardAsync()
+    {
+        if (deck is null) return;
+        if (string.IsNullOrWhiteSpace(newCard.Front) || string.IsNullOrWhiteSpace(newCard.Back)) return;
+        await Store.AddCardAsync(deck, newCard.Front, newCard.Back);
+        newCard = new();
+    }
+
+    private async Task DeleteCardAsync(Guid cardId)
+    {
+        if (deck is null) return;
+        await Store.DeleteCardAsync(deck, cardId);
+    }
+
+    public void Dispose() => Store.OnChange -= StateHasChanged;
+
+    private class CardForm
+    {
+        public string Front { get; set; } = "";
+        public string Back { get; set; } = "";
+    }
+}

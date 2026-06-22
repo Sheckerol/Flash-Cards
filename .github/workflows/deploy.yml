@@ -1,0 +1,65 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - claude/mobile-flashcard-app-spq4ki
+  workflow_dispatch:
+
+# Allow this workflow to publish to GitHub Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deployment at a time; let in-progress runs finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Run tests
+        run: dotnet test tests/FlashCards.Tests/FlashCards.Tests.csproj -c Release
+
+      # Set the base path to the repo subpath BEFORE publishing so the
+      # generated service-worker integrity hashes match index.html.
+      - name: Set base href for project page
+        run: |
+          sed -i 's|<base href="/" />|<base href="/${{ github.event.repository.name }}/" />|' wwwroot/index.html
+
+      - name: Publish
+        run: dotnet publish FlashCards.csproj -c Release -o release
+
+      - name: Add SPA + Pages support files
+        run: |
+          # SPA fallback so deep links (e.g. /study/<id>) resolve to the app.
+          cp release/wwwroot/index.html release/wwwroot/404.html
+          # Prevent GitHub Pages from running Jekyll (which ignores _framework).
+          touch release/wwwroot/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: release/wwwroot
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

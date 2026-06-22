@@ -37,7 +37,7 @@ else
     {
         <p class="study-progress">@remaining card@(remaining == 1 ? "" : "s") remaining</p>
 
-        <div class="flashcard @(showBack ? "flipped" : "")" @onclick="Flip">
+        <div class="flashcard @(showBack ? "flipped" : "")" @key="shownCount" @onclick="Flip">
             <div class="flashcard-inner">
                 <div class="flashcard-face flashcard-front">
                     <span class="face-label">Front</span>
@@ -87,6 +87,11 @@ else
     private bool showBack;
     private int reviewedCount;
 
+    // Bumped on every card shown; used as the flashcard's @key so each card
+    // renders as a fresh element (front-facing) instead of animating the
+    // previous card's flip back — which would briefly reveal the new back.
+    private int shownCount;
+
     private int remaining => queue.Count + (current is not null ? 1 : 0);
 
     protected override async Task OnInitializedAsync()
@@ -109,6 +114,7 @@ else
     {
         showBack = false;
         current = queue.Count > 0 ? queue.Dequeue() : null;
+        shownCount++;
     }
 
     private void Flip() => showBack = !showBack;

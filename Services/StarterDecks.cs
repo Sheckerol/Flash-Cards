@@ -10,6 +10,8 @@ public static class StarterDecks
 {
     public static readonly Guid HiraganaId = new("a1a1a1a1-0000-0000-0000-000000000001");
     public static readonly Guid KatakanaId = new("a2a2a2a2-0000-0000-0000-000000000002");
+    public static readonly Guid HiraganaExtendedId = new("a3a3a3a3-0000-0000-0000-000000000003");
+    public static readonly Guid KatakanaExtendedId = new("a4a4a4a4-0000-0000-0000-000000000004");
 
     /// <summary>Returns fresh instances of every starter deck.</summary>
     public static IEnumerable<Deck> All()
@@ -25,6 +27,18 @@ public static class StarterDecks
             "Katakana (カタカナ)",
             "The basic 46 katakana — see the character, recall its sound.",
             Katakana);
+
+        yield return BuildDeck(
+            HiraganaExtendedId,
+            "Hiragana — Dakuten & Combos",
+            "Voiced (が), half-voiced (ぱ) and combined (きゃ) hiragana.",
+            HiraganaExtended);
+
+        yield return BuildDeck(
+            KatakanaExtendedId,
+            "Katakana — Dakuten & Combos",
+            "Voiced (ガ), half-voiced (パ) and combined (キャ) katakana.",
+            KatakanaExtended);
     }
 
     private static Deck BuildDeck(Guid id, string name, string description, (string Kana, string Romaji)[] kana)
@@ -65,5 +79,51 @@ public static class StarterDecks
         ("ラ", "ra"), ("リ", "ri"), ("ル", "ru"), ("レ", "re"), ("ロ", "ro"),
         ("ワ", "wa"), ("ヲ", "wo"),
         ("ン", "n"),
+    };
+
+    private static readonly (string, string)[] HiraganaExtended =
+    {
+        // Dakuten (voiced)
+        ("が", "ga"), ("ぎ", "gi"), ("ぐ", "gu"), ("げ", "ge"), ("ご", "go"),
+        ("ざ", "za"), ("じ", "ji"), ("ず", "zu"), ("ぜ", "ze"), ("ぞ", "zo"),
+        ("だ", "da"), ("ぢ", "ji (di)"), ("づ", "zu (du)"), ("で", "de"), ("ど", "do"),
+        ("ば", "ba"), ("び", "bi"), ("ぶ", "bu"), ("べ", "be"), ("ぼ", "bo"),
+        // Handakuten (half-voiced)
+        ("ぱ", "pa"), ("ぴ", "pi"), ("ぷ", "pu"), ("ぺ", "pe"), ("ぽ", "po"),
+        // Yōon (combinations)
+        ("きゃ", "kya"), ("きゅ", "kyu"), ("きょ", "kyo"),
+        ("しゃ", "sha"), ("しゅ", "shu"), ("しょ", "sho"),
+        ("ちゃ", "cha"), ("ちゅ", "chu"), ("ちょ", "cho"),
+        ("にゃ", "nya"), ("にゅ", "nyu"), ("にょ", "nyo"),
+        ("ひゃ", "hya"), ("ひゅ", "hyu"), ("ひょ", "hyo"),
+        ("みゃ", "mya"), ("みゅ", "myu"), ("みょ", "myo"),
+        ("りゃ", "rya"), ("りゅ", "ryu"), ("りょ", "ryo"),
+        ("ぎゃ", "gya"), ("ぎゅ", "gyu"), ("ぎょ", "gyo"),
+        ("じゃ", "ja"), ("じゅ", "ju"), ("じょ", "jo"),
+        ("びゃ", "bya"), ("びゅ", "byu"), ("びょ", "byo"),
+        ("ぴゃ", "pya"), ("ぴゅ", "pyu"), ("ぴょ", "pyo"),
+    };
+
+    private static readonly (string, string)[] KatakanaExtended =
+    {
+        // Dakuten (voiced)
+        ("ガ", "ga"), ("ギ", "gi"), ("グ", "gu"), ("ゲ", "ge"), ("ゴ", "go"),
+        ("ザ", "za"), ("ジ", "ji"), ("ズ", "zu"), ("ゼ", "ze"), ("ゾ", "zo"),
+        ("ダ", "da"), ("ヂ", "ji (di)"), ("ヅ", "zu (du)"), ("デ", "de"), ("ド", "do"),
+        ("バ", "ba"), ("ビ", "bi"), ("ブ", "bu"), ("ベ", "be"), ("ボ", "bo"),
+        // Handakuten (half-voiced)
+        ("パ", "pa"), ("ピ", "pi"), ("プ", "pu"), ("ペ", "pe"), ("ポ", "po"),
+        // Yōon (combinations)
+        ("キャ", "kya"), ("キュ", "kyu"), ("キョ", "kyo"),
+        ("シャ", "sha"), ("シュ", "shu"), ("ショ", "sho"),
+        ("チャ", "cha"), ("チュ", "chu"), ("チョ", "cho"),
+        ("ニャ", "nya"), ("ニュ", "nyu"), ("ニョ", "nyo"),
+        ("ヒャ", "hya"), ("ヒュ", "hyu"), ("ヒョ", "hyo"),
+        ("ミャ", "mya"), ("ミュ", "myu"), ("ミョ", "myo"),
+        ("リャ", "rya"), ("リュ", "ryu"), ("リョ", "ryo"),
+        ("ギャ", "gya"), ("ギュ", "gyu"), ("ギョ", "gyo"),
+        ("ジャ", "ja"), ("ジュ", "ju"), ("ジョ", "jo"),
+        ("ビャ", "bya"), ("ビュ", "byu"), ("ビョ", "byo"),
+        ("ピャ", "pya"), ("ピュ", "pyu"), ("ピョ", "pyo"),
     };
 }

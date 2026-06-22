@@ -6,21 +6,39 @@ namespace FlashCards.Tests;
 public class StarterDecksTests
 {
     [Fact]
-    public void ProvidesHiraganaAndKatakanaDecks()
+    public void ProvidesAllFourKanaDecks()
     {
         var decks = StarterDecks.All().ToList();
 
-        Assert.Equal(2, decks.Count);
+        Assert.Equal(4, decks.Count);
         Assert.Contains(decks, d => d.Id == StarterDecks.HiraganaId);
         Assert.Contains(decks, d => d.Id == StarterDecks.KatakanaId);
+        Assert.Contains(decks, d => d.Id == StarterDecks.HiraganaExtendedId);
+        Assert.Contains(decks, d => d.Id == StarterDecks.KatakanaExtendedId);
     }
 
     [Fact]
-    public void EachKanaDeckHasAll46BasicCharacters()
+    public void BaseDecksHaveAll46BasicCharacters()
+    {
+        var baseIds = new[] { StarterDecks.HiraganaId, StarterDecks.KatakanaId };
+        foreach (var deck in StarterDecks.All().Where(d => baseIds.Contains(d.Id)))
+            Assert.Equal(46, deck.Cards.Count);
+    }
+
+    [Fact]
+    public void ExtendedDecksCoverDakutenHandakutenAndCombos()
+    {
+        // 25 dakuten/handakuten + 33 yōon = 58 per script.
+        var extendedIds = new[] { StarterDecks.HiraganaExtendedId, StarterDecks.KatakanaExtendedId };
+        foreach (var deck in StarterDecks.All().Where(d => extendedIds.Contains(d.Id)))
+            Assert.Equal(58, deck.Cards.Count);
+    }
+
+    [Fact]
+    public void EveryCardHasFrontAndBack()
     {
         foreach (var deck in StarterDecks.All())
         {
-            Assert.Equal(46, deck.Cards.Count);
             Assert.All(deck.Cards, c => Assert.False(string.IsNullOrWhiteSpace(c.Front)));
             Assert.All(deck.Cards, c => Assert.False(string.IsNullOrWhiteSpace(c.Back)));
         }

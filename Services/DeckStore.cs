@@ -10,6 +10,7 @@ namespace FlashCards.Services;
 public class DeckStore
 {
     private const string StorageKey = "flashcards.decks.v1";
+    private const string SeededStartersKey = "flashcards.starters.v1";
 
     private readonly LocalStorage _storage;
     private bool _loaded;
@@ -39,13 +40,54 @@ public class DeckStore
             }
         }
 
-        if (Decks.Count == 0)
-        {
-            SeedSampleData();
-            await SaveAsync();
-        }
+        await EnsureStarterDecksAsync();
 
         _loaded = true;
+    }
+
+    /// <summary>
+    /// Adds any built-in starter deck that hasn't been seeded yet. Each starter
+    /// is seeded at most once (tracked by id), so deleting one won't bring it back.
+    /// </summary>
+    private async Task EnsureStarterDecksAsync()
+    {
+        var seeded = await LoadSeededStarterIdsAsync();
+        var changed = false;
+
+        foreach (var starter in StarterDecks.All())
+        {
+            if (seeded.Contains(starter.Id))
+                continue;
+
+            // Only add if the user doesn't already have a deck with this id.
+            if (!Decks.Any(d => d.Id == starter.Id))
+                Decks.Add(starter);
+
+            seeded.Add(starter.Id);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await _storage.SetAsync(SeededStartersKey, JsonSerializer.Serialize(seeded));
+            await SaveAsync();
+        }
+    }
+
+    private async Task<HashSet<Guid>> LoadSeededStarterIdsAsync()
+    {
+        var json = await _storage.GetAsync(SeededStartersKey);
+        if (string.IsNullOrWhiteSpace(json))
+            return new HashSet<Guid>();
+
+        try
+        {
+            return JsonSerializer.Deserialize<HashSet<Guid>>(json) ?? new HashSet<Guid>();
+        }
+        catch
+        {
+            return new HashSet<Guid>();
+        }
     }
 
     public Deck? GetDeck(Guid id) => Decks.FirstOrDefault(d => d.Id == id);
@@ -86,18 +128,4 @@ public class DeckStore
 
     public static IEnumerable<Card> DueCards(Deck deck, DateTime nowUtc) =>
         deck.Cards.Where(c => c.IsDue(nowUtc));
-
-    private void SeedSampleData()
-    {
-        var deck = new Deck
-        {
-            Name = "Sample: Capital Cities",
-            Description = "A starter deck — edit or delete it any time."
-        };
-        deck.Cards.Add(new Card { Front = "Capital of France?", Back = "Paris" });
-        deck.Cards.Add(new Card { Front = "Capital of Japan?", Back = "Tokyo" });
-        deck.Cards.Add(new Card { Front = "Capital of Australia?", Back = "Canberra" });
-        deck.Cards.Add(new Card { Front = "Capital of Canada?", Back = "Ottawa" });
-        Decks.Add(deck);
-    }
 }
